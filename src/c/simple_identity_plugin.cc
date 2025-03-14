@@ -31,12 +31,12 @@ class SimpleIdentityPlugin : public IPluginV2DynamicExt {
   int getNbOutputs() const noexcept override { return 1; }
 
   // IPluginV2DynamicExtの純粋仮想関数
-  DimsExprs getOutputDimensions(int outputIndex, const DimsExprs* inputs,
-                                int nbInputs,
-                                IExprBuilder& exprBuilder) noexcept override {
-    std::cout << "getOutputDimensions called for output " << outputIndex
+  DimsExprs getOutputDimensions(int output_index, const DimsExprs* inputs,
+                                int nb_inputs,
+                                IExprBuilder& expr_builder) noexcept override {
+    std::cout << "getOutputDimensions called for output " << output_index
               << std::endl;
-    if (outputIndex != 0 || nbInputs != 1) {
+    if (output_index != 0 || nb_inputs != 1) {
       std::cout << "Invalid input/output configuration" << std::endl;
       DimsExprs empty;
       empty.nbDims = 0;
@@ -45,38 +45,38 @@ class SimpleIdentityPlugin : public IPluginV2DynamicExt {
     return inputs[0];
   }
 
-  bool supportsFormatCombination(int pos, const PluginTensorDesc* inOut,
-                                 int nbInputs,
-                                 int nbOutputs) noexcept override {
-    assert(nbInputs == 1 && nbOutputs == 1);
-    bool supported = (inOut[pos].type == DataType::kFLOAT) &&
-                     (inOut[pos].format == TensorFormat::kLINEAR);
+  bool supportsFormatCombination(int pos, const PluginTensorDesc* in_out,
+                                 int nb_inputs,
+                                 int nb_outputs) noexcept override {
+    assert(nb_inputs == 1 && nb_outputs == 1);
+    bool supported = (in_out[pos].type == DataType::kFLOAT) &&
+                     (in_out[pos].format == TensorFormat::kLINEAR);
     std::cout << "supportsFormatCombination for pos " << pos << ": "
               << (supported ? "true" : "false") << std::endl;
     return supported;
   }
 
-  void configurePlugin(const DynamicPluginTensorDesc* inputs, int32_t nbInputs,
+  void configurePlugin(const DynamicPluginTensorDesc* inputs, int32_t nb_inputs,
                        const DynamicPluginTensorDesc* outputs,
-                       int32_t nbOutputs) noexcept override {
-    std::cout << "configurePlugin called with " << nbInputs << " inputs, "
-              << nbOutputs << " outputs" << std::endl;
+                       int32_t nb_outputs) noexcept override {
+    std::cout << "configurePlugin called with " << nb_inputs << " inputs, "
+              << nb_outputs << " outputs" << std::endl;
   }
 
-  size_t getWorkspaceSize(const PluginTensorDesc* /*inputs*/, int /*nbInputs*/,
+  size_t getWorkspaceSize(const PluginTensorDesc* /*inputs*/, int /*nb_inputs*/,
                           const PluginTensorDesc* /*outputs*/,
-                          int /*nbOutputs*/) const noexcept override {
+                          int /*nb_outputs*/) const noexcept override {
     return 0;
   }
 
   // IPluginV2DynamicExtの純粋仮想関数
-  int enqueue(const PluginTensorDesc* inputDesc,
+  int enqueue(const PluginTensorDesc* input_desc,
               const PluginTensorDesc* /*outputDesc*/, const void* const* inputs,
               void* const* outputs, void* /*workspace*/,
               cudaStream_t stream) noexcept override {
     int volume = 1;
-    for (int i = 0; i < inputDesc[0].dims.nbDims; i++)
-      volume *= inputDesc[0].dims.d[i];
+    for (int i = 0; i < input_desc[0].dims.nbDims; i++)
+      volume *= input_desc[0].dims.d[i];
     size_t bytes = volume * sizeof(float);
 
     std::cout << "enqueue called, copying " << bytes << " bytes" << std::endl;
@@ -85,9 +85,9 @@ class SimpleIdentityPlugin : public IPluginV2DynamicExt {
     return 0;
   }
 
-  DataType getOutputDataType(int /*index*/, const DataType* inputTypes,
-                             int /*nbInputs*/) const noexcept override {
-    return inputTypes[0];
+  DataType getOutputDataType(int /*index*/, const DataType* input_types,
+                             int /*nb_inputs*/) const noexcept override {
+    return input_types[0];
   }
 
   // IPluginV2の純粋仮想関数
@@ -111,15 +111,15 @@ class SimpleIdentityPlugin : public IPluginV2DynamicExt {
     std::cout << "SimpleIdentityPlugin destroy called" << std::endl;
     delete this;
   }
-  void setPluginNamespace(const char* pluginNamespace) noexcept override {
-    mNamespace = pluginNamespace;
+  void setPluginNamespace(const char* plugin_namespace) noexcept override {
+    m_namespace_ = plugin_namespace;
   }
   const char* getPluginNamespace() const noexcept override {
-    return mNamespace.c_str();
+    return m_namespace_.c_str();
   }
 
  private:
-  std::string mNamespace;
+  std::string m_namespace_;
 };
 
 class SimpleIdentityPluginCreator : public IPluginCreator {
@@ -149,23 +149,23 @@ class SimpleIdentityPluginCreator : public IPluginCreator {
     return new SimpleIdentityPlugin();
   }
 
-  IPluginV2* deserializePlugin(const char* name, const void* serialData,
-                               size_t serialLength) noexcept override {
+  IPluginV2* deserializePlugin(const char* name, const void* serial_data,
+                               size_t serial_length) noexcept override {
     std::cout << "Deserializing plugin instance: " << name << std::endl;
-    return new SimpleIdentityPlugin(serialData, serialLength);
+    return new SimpleIdentityPlugin(serial_data, serial_length);
   }
 
-  void setPluginNamespace(const char* libNamespace) noexcept override {
-    mNamespace = libNamespace;
+  void setPluginNamespace(const char* lib_namespace) noexcept override {
+    m_namespace_ = lib_namespace;
   }
 
   const char* getPluginNamespace() const noexcept override {
-    return mNamespace.c_str();
+    return m_namespace_.c_str();
   }
 
  private:
-  PluginFieldCollection mFC;
-  std::string mNamespace;
+  PluginFieldCollection m_fc_;
+  std::string m_namespace_;
 };
 
 extern "C" {
@@ -179,14 +179,15 @@ void setLoggerFinder(nvinfer1::ILoggerFinder& finder)
 
 // プラグインクリエイター配列の取得
 // ライブラリが持つプラグインの生成（クリエーション）を行うオブジェクト群をTensorRT側に提供するための関数で、TensorRTがカスタムプラグインを動的に取得・登録するために必要です。
-IPluginCreator* const* getPluginCreators(int32_t& nbCreators)
+IPluginCreator* const* getPluginCreators(int32_t& nb_creators)
 {
     // シングルトンとしてプラグインクリエイターのインスタンスを生成
-    static SimpleIdentityPluginCreator pluginCreatorInstance;
-    static nvinfer1::IPluginCreator* pluginCreators[] = { &pluginCreatorInstance };
+    static SimpleIdentityPluginCreator plugin_creator_instance;
+    static nvinfer1::IPluginCreator* plugin_creators[] = {
+        &plugin_creator_instance};
 
-    nbCreators = sizeof(pluginCreators) / sizeof(pluginCreators[0]);
-    return pluginCreators;
+    nb_creators = sizeof(plugin_creators) / sizeof(plugin_creators[0]);
+    return plugin_creators;
 }
 
 } // extern "C"

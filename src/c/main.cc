@@ -33,26 +33,26 @@ using UniquePtr = std::unique_ptr<T, InferDeleter>;
 class Logger : public nvinfer1::ILogger {
  public:
   void log(Severity severity, const char* msg) noexcept override {
-    const char* sevStr = "";
+    const char* sev_str = "";
     switch (severity) {
       case Severity::kINTERNAL_ERROR:
-        sevStr = "INTERNAL_ERROR";
+        sev_str = "INTERNAL_ERROR";
         break;
       case Severity::kERROR:
-        sevStr = "ERROR";
+        sev_str = "ERROR";
         break;
       case Severity::kWARNING:
-        sevStr = "WARNING";
+        sev_str = "WARNING";
         break;
       case Severity::kINFO:
-        sevStr = "INFO";
+        sev_str = "INFO";
         break;
       case Severity::kVERBOSE:
-        sevStr = "VERBOSE";
+        sev_str = "VERBOSE";
         break;
     }
     if (severity != Severity::kINFO && severity != Severity::kVERBOSE) {
-      std::cerr << "[" << sevStr << "] " << msg << std::endl;
+      std::cerr << "[" << sev_str << "] " << msg << std::endl;
     }
   }
 };
@@ -112,11 +112,11 @@ int main() {
   }
 
   // Add plugin layer to network
-  auto pluginLayer = network->addPluginV2(&input, 1, *plugin);
+  auto plugin_layer = network->addPluginV2(&input, 1, *plugin);
   plugin->destroy();  // Destroyable after being copied to the network
 
   // Set output
-  auto output = pluginLayer->getOutput(0);
+  auto output = plugin_layer->getOutput(0);
   output->setName("output");
   network->markOutput(*output);
 
@@ -139,8 +139,8 @@ int main() {
 
   // 入出力用のメモリ確保
   const int size = 1 * 3 * 10 * 10;
-  std::vector<float> inputData(size, 1.0f);  // 入力データ（全て1.0）
-  std::vector<float> outputData(size);       // 出力データ
+  std::vector<float> input_data(size, 1.0f);  // 入力データ（全て1.0）
+  std::vector<float> output_data(size);       // 出力データ
 
   // CUDA用のメモリ確保
   void* d_input = nullptr;
@@ -149,7 +149,7 @@ int main() {
   CHECK(cudaMalloc(&d_output, size * sizeof(float)));
 
   // Host to Device
-  CHECK(cudaMemcpy(d_input, inputData.data(), size * sizeof(float),
+  CHECK(cudaMemcpy(d_input, input_data.data(), size * sizeof(float),
                    cudaMemcpyHostToDevice));
 
   // Inference
@@ -169,10 +169,10 @@ int main() {
   // Verify result
   bool verified = true;
   for (int i = 0; i < 10; i++) {
-    std::cout << "入力[" << i << "] = " << inputData[i] << ", 出力[" << i
-              << "] = " << outputData[i] << std::endl;
+    std::cout << "入力[" << i << "] = " << input_data[i] << ", 出力[" << i
+              << "] = " << output_data[i] << std::endl;
 
-    if (inputData[i] != outputData[i]) {
+    if (input_data[i] != output_data[i]) {
       verified = false;
     }
   }
