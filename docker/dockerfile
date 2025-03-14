@@ -1,0 +1,16 @@
+FROM nvcr.io/nvidia/tensorrt:24.04-py3
+
+# 必要に応じた追加パッケージのインストール
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    libopencv-dev \
+    && rm -rf /var/lib/apt/lists/*
+    
+RUN pip install torch torchvision onnx onnxruntime
+
+
+WORKDIR /workspace
+
